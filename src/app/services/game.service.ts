@@ -30,17 +30,28 @@ export class GameService {
     if (active) this._activeGame.set(active);
   }
 
+  private cloneGame(g: Game): Game {
+    try {
+      // structuredClone preserves dates/objects when available
+      return (typeof structuredClone === 'function' ? structuredClone(g) : JSON.parse(JSON.stringify(g))) as Game;
+    } catch {
+      return JSON.parse(JSON.stringify(g)) as Game;
+    }
+  }
+
+  private framesFor(): Frame[] {
+    return Array.from({ length: 10 }, (_, i) => ({ index: i + 1, rolls: [] } as Frame));
+  }
+
   startNewGame(players: Pick<Player, 'id' | 'name'>[]): Game {
     const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now());
     const now = new Date().toISOString();
     const playersFull: Player[] = players.map((p: Pick<Player, 'id' | 'name'>) => ({ ...p, createdAt: now } as Player));
 
-    const framesFor = () => Array.from({ length: 10 }, (_, i) => ({ index: i + 1, rolls: [] } as Frame));
-
     const game: Game = {
       id,
       players: playersFull,
-      playerFrames: Object.fromEntries(playersFull.map((p: Player) => [p.id, framesFor()])),
+      playerFrames: Object.fromEntries(playersFull.map((p: Player) => [p.id, this.framesFor()])),
       currentPlayerId: playersFull[0]?.id,
       currentFrameIndex: 1,
       createdAt: now,
@@ -52,6 +63,39 @@ export class GameService {
     this.storage.saveGame(game);
     this.storage.setActiveGame(game.id);
     return game;
+  }
+
+  /**
+   * Add a player to the currently active game immutably. If no active game exists, starts a new game.
+   */
+  addPlayer(player: Pick<Player, 'id' | 'name'>): Game {
+    const active = this._activeGame();
+    if (!active) {
+      return this.startNewGame([player]);
+    }
+
+    const now = new Date().toISOString();
+    const newPlayer: Player = { ...player, createdAt: now } as Player;
+
+    // create a cloned new game object
+    const newGame = this.cloneGame(active);
+
+    // avoid duplicate ids: replace if exists, otherwise append
+    const exists = newGame.players.find((p) => p.id === newPlayer.id);
+    if (exists) {
+      newGame.players = newGame.players.map((p) => (p.id === newPlayer.id ? newPlayer : p));
+    } else {
+      newGame.players = [...newGame.players, newPlayer];
+      newGame.playerFrames = { ...newGame.playerFrames, [newPlayer.id]: this.framesFor() };
+    }
+
+    newGame.currentPlayerId = newGame.currentPlayerId ?? newPlayer.id;
+
+    // persist and update signals immutably
+    this._activeGame.set(newGame);
+    this._games.update((list) => list.map((g) => (g.id === newGame.id ? newGame : g)));
+    this.saveActive();
+    return newGame;
   }
 
   loadGame(gameId: string): void {
@@ -84,37 +128,45 @@ export class GameService {
     const playerId = g.currentPlayerId;
     if (!playerId) return;
 
-    g.undoStack = g.undoStack ?? [];
-    try {
-      const snapshotState = typeof structuredClone === 'function' ? structuredClone(g) : JSON.parse(JSON.stringify(g));
-      (g.undoStack as any).push({ timestamp: new Date().toISOString(), state: snapshotState as Game });
-    } catch {
-      // ignore snapshot failures
-    }
+    // snapshot for undo (use clone of current state)
+    const snapshotState = this.cloneGame(g);
+    const timestamp = new Date().toISOString();
 
-    const frames = g.playerFrames[playerId];
-    const frame = frames[g.currentFrameIndex - 1];
-    frame.rolls.push({ pins, timestamp: new Date().toISOString() } as any);
+    // clone game and mutate the clone
+    const newGame = this.cloneGame(g);
+    newGame.undoStack = newGame.undoStack ?? [];
+    newGame.undoStack.push({ timestamp, state: snapshotState } as any);
 
-    const playerIndex = g.players.findIndex((p: Player) => p.id === playerId);
-    const nextPlayerIndex = (playerIndex + 1) % g.players.length;
-    if (g.currentFrameIndex === 10 && frame.rolls.length >= 3) {
-      g.currentPlayerId = g.players[nextPlayerIndex]?.id;
+    const frames = newGame.playerFrames[playerId];
+    const frame = frames[newGame.currentFrameIndex - 1];
+    frame.rolls = [...(frame.rolls ?? []), { pins, timestamp } as any];
+
+    const playerIndex = newGame.players.findIndex((p) => p.id === playerId);
+    const nextPlayerIndex = (playerIndex + 1) % newGame.players.length;
+    if (newGame.currentFrameIndex === 10 && frame.rolls.length >= 3) {
+      newGame.currentPlayerId = newGame.players[nextPlayerIndex]?.id;
     } else if (frame.rolls.length >= 2 || pins === 10) {
-      g.currentPlayerId = g.players[nextPlayerIndex]?.id;
-      if (nextPlayerIndex === 0) g.currentFrameIndex = Math.min(10, g.currentFrameIndex + 1);
+      newGame.currentPlayerId = newGame.players[nextPlayerIndex]?.id;
+      if (nextPlayerIndex === 0) newGame.currentFrameIndex = Math.min(10, newGame.currentFrameIndex + 1);
     }
 
-    this._activeGame.set(g);
+    // set cloned game immutably so signals update
+    this._activeGame.set(newGame);
+    this._games.update((list) => list.map((x) => (x.id === newGame.id ? newGame : x)));
     this.saveActive();
   }
 
   undo(): void {
     const g = this._activeGame();
     if (!g) return;
-    const last = g.undoStack?.pop();
+    const last = (g.undoStack ?? []).slice(-1)[0];
     if (last) {
-      this._activeGame.set(last.state);
+      // restore snapshot (assume snapshot is a full state)
+      const restored = this.cloneGame(last.state as Game);
+      // remove last snapshot
+      restored.undoStack = (restored.undoStack ?? []).slice(0, -1);
+      this._activeGame.set(restored);
+      this._games.update((list) => list.map((x) => (x.id === restored.id ? restored : x)));
       this.saveActive();
     }
   }

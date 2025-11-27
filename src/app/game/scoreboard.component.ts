@@ -5,7 +5,6 @@ import { GameService } from '../services/game.service';
 
 @Component({
   selector: 'scoreboard',
-  standalone: true,
   imports: [CommonModule],
   template: `
     <div role="table" aria-label="Scoreboard">
@@ -18,12 +17,18 @@ import { GameService } from '../services/game.service';
       </div>
 
       <div role="rowgroup">
-        <div role="row" *ngFor="let player of (game()?.players || []); trackBy: trackById">
-          <div role="cell">{{ player.name }}</div>
+        <div
+          role="row"
+          *ngFor="let player of (game()?.players || []); trackBy: trackById"
+          [class.current]="isCurrent(player.id)"
+        >
+          <div role="cell">
+            {{ player.name }} <span *ngIf="isCurrent(player.id)">(aktuell)</span>
+          </div>
           <div role="cell" *ngFor="let frame of framesFor(player.id)">
             {{ rollString(frame) }}
           </div>
-          <div role="cell">{{ totals()[player.id] ?? 0 }}</div>
+          <div role="cell">{{ totals()[player.id] || 0 }}</div>
         </div>
       </div>
     </div>
@@ -32,6 +37,7 @@ import { GameService } from '../services/game.service';
     `
       [role="table"] { width:100%; border-collapse:collapse }
       [role="row"] { display:flex; gap:0.5rem; padding:0.25rem 0 }
+      [role="row"].current { background: color-mix(in srgb, #b3d4ff 50%, transparent); }
       [role="columnheader"] { font-weight:600; width:3rem }
       [role="cell"] { width:3rem }
     `,
@@ -57,5 +63,11 @@ export class ScoreboardComponent {
 
   rollString(frame: any): string {
     return (frame.rolls ?? []).map((r: any) => String(r.pins)).join(',');
+  }
+
+  isCurrent(playerId: string): boolean {
+    const g = this.game();
+    if (!g) return false;
+    return g.currentPlayerId === playerId;
   }
 }

@@ -8,7 +8,7 @@ import { GameService } from './services/game.service';
   template: `
     <header role="banner" class="app-header">
       <div class="brand">
-        <img ngSrc="/assets/logo.png" width="64" height="64" alt="Bowling Counter logo" />
+        <img ngSrc="/assets/logo.jpg" width="64" height="64" alt="Bowling Counter logo"/>
         <h1>Bowling Counter</h1>
       </div>
       <div class="controls">

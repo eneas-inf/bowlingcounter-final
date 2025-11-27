@@ -44,9 +44,11 @@ export class PlayerEditorComponent {
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : String(Date.now());
-    this.gameService.startNewGame([{ id, name }]);
+    this.gameService.addPlayer({ id, name });
     this.form.reset();
-    this.players.set(this.gameService.games().flatMap((g) => g.players ?? []));
+
+    const active = this.gameService.activeGame();
+    this.players.set(active?.players ?? []);
   }
 
   trackById(_: number, item: { id: string }) {
