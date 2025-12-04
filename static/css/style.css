@@ -1,0 +1,41 @@
+body {
+  background: linear-gradient(180deg, #f7f9fc, #ffffff);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+.player-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.player-card.winner {
+  animation: pulse 1s infinite;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  transform: translateY(-4px);
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 6px 18px rgba(0,150,136,0.12); }
+  50% { box-shadow: 0 14px 30px rgba(0,150,136,0.18); transform: translateY(-6px); }
+  100% { box-shadow: 0 6px 18px rgba(0,150,136,0.12); transform: translateY(0); }
+}
+
+.frame {
+  min-width: 48px;
+  text-align: center;
+  padding: 6px;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  margin-right: 6px;
+  display: inline-block;
+}
+
+.frame-small {
+  font-size: 0.82rem;
+  color: #333;
+}
+
+.btn-pins {
+  margin: 2px;
+  min-width: 44px;
+}
