@@ -40,7 +40,34 @@ async function refresh() {
 
     const header = document.createElement("div");
     header.className = "d-flex justify-content-between align-items-center mb-2";
-    header.innerHTML = `<h5 class="card-title mb-0">${p.name}</h5><div><strong>${p.score}</strong></div>`;
+    
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "d-flex gap-2 align-items-center";
+    
+    const titleEl = document.createElement("h5");
+    titleEl.className = "card-title mb-0";
+    titleEl.textContent = p.name;
+    
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn btn-sm btn-outline-primary";
+    editBtn.innerHTML = "✎";
+    editBtn.title = "Name bearbeiten";
+    editBtn.onclick = (e) => {
+      e.preventDefault();
+      document.getElementById("editPlayerId").value = p.id;
+      document.getElementById("editPlayerName").value = p.name;
+      const modal = new bootstrap.Modal(document.getElementById("editPlayerModal"));
+      modal.show();
+    };
+    
+    nameDiv.appendChild(titleEl);
+    nameDiv.appendChild(editBtn);
+    
+    const scoreDiv = document.createElement("div");
+    scoreDiv.innerHTML = `<strong>${p.score}</strong>`;
+    
+    header.appendChild(nameDiv);
+    header.appendChild(scoreDiv);
 
     const framesDiv = document.createElement("div");
     framesDiv.className = "mb-3";
@@ -184,6 +211,19 @@ document.getElementById("addPlayerForm").addEventListener("submit", async (e) =>
 document.getElementById("resetBtn").addEventListener("click", async () => {
   if (!confirm("Spiel wirklich resetten?")) return;
   await api("/api/reset", "POST");
+  await refresh();
+});
+
+document.getElementById("savePlayerBtn").addEventListener("click", async () => {
+  const pid = parseInt(document.getElementById("editPlayerId").value);
+  const name = document.getElementById("editPlayerName").value.trim();
+  if (!name) {
+    alert("Spielername darf nicht leer sein!");
+    return;
+  }
+  await api("/api/update_player", "POST", { id: pid, name });
+  const modal = bootstrap.Modal.getInstance(document.getElementById("editPlayerModal"));
+  modal.hide();
   await refresh();
 });
 

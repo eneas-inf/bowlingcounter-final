@@ -41,6 +41,10 @@ class BowlingGame:
             if self.current_turn_index >= len(self.current_player_order):
                 self.current_turn_index = 0
 
+    def update_player_name(self, pid: int, name: str):
+        if pid in self.players:
+            self.players[pid].name = name.strip()
+
     def record_roll(self, pid: int, pins: int):
         # only accept 0..10
         if pid not in self.players:
@@ -203,6 +207,16 @@ def api_remove_player():
     data = request.json or {}
     pid = int(data.get("id", 0))
     game.remove_player(pid)
+    return jsonify({"ok": True})
+
+@app.route("/api/update_player", methods=["POST"])
+def api_update_player():
+    data = request.json or {}
+    pid = int(data.get("id", 0))
+    name = data.get("name", "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "Name cannot be empty"}), 400
+    game.update_player_name(pid, name)
     return jsonify({"ok": True})
 
 @app.route("/api/roll", methods=["POST"])
