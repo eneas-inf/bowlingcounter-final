@@ -1,3 +1,7 @@
+html {
+  height: 100%;
+}
+
 body {
   background: linear-gradient(180deg, #f7f9fc, #ffffff);
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -8,15 +12,38 @@ body {
 }
 
 .player-card.winner {
-  animation: pulse 1s infinite;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  transform: translateY(-4px);
+  border: 3px solid #10b981;
+  background-color: #f0fdf4;
+  transform: scale(1.02);
 }
 
-@keyframes pulse {
-  0% { box-shadow: 0 6px 18px rgba(0,150,136,0.12); }
-  50% { box-shadow: 0 14px 30px rgba(0,150,136,0.18); transform: translateY(-6px); }
-  100% { box-shadow: 0 6px 18px rgba(0,150,136,0.12); transform: translateY(0); }
+.game-finished-banner {
+  font-size: 1.1rem;
+  text-align: center;
+  border: 2px solid #10b981;
+  background-color: #f0fdf4 !important;
+  animation: slideDown 0.5s ease-out;
+}
+
+.game-finished-banner strong {
+  font-size: 1.3rem;
+}
+
+.game-finished-banner p {
+  font-size: 1rem;
+  margin-top: 8px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .frame {

@@ -120,6 +120,30 @@ class BowlingGame:
         player.frames = frames
         return score, frames
 
+    def is_game_finished(self):
+        """Check if all players have completed all 10 frames"""
+        if not self.current_player_order:
+            return False
+        for pid in self.current_player_order:
+            p = self.players[pid]
+            score, frames = self.compute_frames_and_score(p)
+            # Check if 10th frame is complete (should have 1, 2, or 3 rolls)
+            if len(frames) < 10:
+                return False
+            tenth_frame = frames[9]
+            if len(tenth_frame) == 0:
+                return False
+            # Check if 10th frame is fully complete
+            if tenth_frame[0] == 10 or (len(tenth_frame) >= 2 and tenth_frame[0] + tenth_frame[1] == 10):
+                # Need 3 rolls
+                if len(tenth_frame) < 3:
+                    return False
+            else:
+                # Need 2 rolls
+                if len(tenth_frame) < 2:
+                    return False
+        return True
+
     def get_game_state(self):
         out = []
         for pid in self.current_player_order:
@@ -132,18 +156,28 @@ class BowlingGame:
                 "frames": frames,
                 "rolls": p.rolls
             })
-        # determine winner(s) (highest score among players who have at least some rolls)
-        max_score = None
+        
+        # Determine if game is finished
+        game_finished = self.is_game_finished()
+        
+        # Only show winners if game is finished
         winners = []
-        for s in out:
-            # Only consider numeric scores; ties allowed
-            sc = s["score"]
-            if max_score is None or sc > max_score:
-                max_score = sc
-                winners = [s["id"]]
-            elif sc == max_score:
-                winners.append(s["id"])
-        return {"players": out, "winners": winners, "current_turn": self.current_player_order[self.current_turn_index] if self.current_player_order else None}
+        if game_finished:
+            max_score = None
+            for s in out:
+                sc = s["score"]
+                if max_score is None or sc > max_score:
+                    max_score = sc
+                    winners = [s["id"]]
+                elif sc == max_score:
+                    winners.append(s["id"])
+        
+        return {
+            "players": out, 
+            "winners": winners, 
+            "game_finished": game_finished,
+            "current_turn": self.current_player_order[self.current_turn_index] if self.current_player_order else None
+        }
 
 game = BowlingGame()
 

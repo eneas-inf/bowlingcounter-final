@@ -13,13 +13,27 @@ async function refresh() {
   const container = document.getElementById("playersArea");
   container.innerHTML = "";
 
+  // Show game finished banner if game is finished
+  if (state.game_finished) {
+    const banner = document.createElement("div");
+    banner.className = "alert alert-success alert-dismissible fade show mb-4 game-finished-banner";
+    banner.innerHTML = `
+      <strong>🎉 Spiel fertig!</strong>
+      <p class="mb-0">Alle Spieler haben ihre Partie abgeschlossen!</p>
+    `;
+    container.appendChild(banner);
+  }
+
   state.players.forEach(p => {
     const col = document.createElement("div");
     col.className = "col-12 col-md-6 col-lg-4";
 
     const card = document.createElement("div");
     card.className = "card player-card";
-    if (state.winners.includes(p.id)) card.classList.add("winner");
+    // Only add winner class if game is finished and player is a winner
+    if (state.game_finished && state.winners.includes(p.id)) {
+      card.classList.add("winner");
+    }
 
     const body = document.createElement("div");
     body.className = "card-body";
