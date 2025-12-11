@@ -54,69 +54,70 @@ class BowlingGame:
 
     def compute_frames_and_score(self, player):
         rolls = player.rolls
-        score = 0
         frames = []
+        score = 0
         i = 0
 
-        for frame in range(10):
+        # Iterate frames 1..10
+        for frame_index in range(1, 11):
+            # if we've consumed all rolls, append empty frame (for UI) and continue
             if i >= len(rolls):
-                break
+                frames.append([])
+                continue
 
-            # -------- 10th Frame Special Handling --------
-            if frame == 9:
-                r1 = rolls[i] if i < len(rolls) else 0
-                r2 = rolls[i+1] if i+1 < len(rolls) else 0
-
-                # Strike im 10. Frame
-                if r1 == 10:
-                    r3 = rolls[i+2] if i+2 < len(rolls) else 0
-                    frames.append([r1, r2, r3])
-                    score += r1 + r2 + r3
-                    break
-
-                # Spare im 10. Frame
-                if r1 + r2 == 10:
-                    r3 = rolls[i+2] if i+2 < len(rolls) else 0
-                    frames.append([r1, r2, r3])
-                    score += 10 + r3
-                    break
-
-                # Normaler Frame (keine 10)
-                frames.append([r1, r2])
-                score += r1 + r2
-                break
-            # -------- END 10th Frame --------
-
-            # STRIKE (Frames 1–9)
-            if rolls[i] == 10:
-                bonus1 = rolls[i+1] if i+1 < len(rolls) else 0
-                bonus2 = rolls[i+2] if i+2 < len(rolls) else 0
-                frame_score = 10 + bonus1 + bonus2
-                score += frame_score
-                frames.append([10])
-                i += 1
-
-            else:
-                # NORMAL FRAME
-                first = rolls[i]
-                second = rolls[i+1] if i+1 < len(rolls) else 0
-                frame_total = first + second
-
-                # SPARE
-                if frame_total == 10:
-                    bonus = rolls[i+2] if i+2 < len(rolls) else 0
-                    frame_score = 10 + bonus
-                    frames.append([first, second])
-                    i += 2
-
+            # Frames 1..9
+            if frame_index < 10:
+                # Strike
+                if rolls[i] == 10:
+                    bonus1 = rolls[i+1] if i+1 < len(rolls) else 0
+                    bonus2 = rolls[i+2] if i+2 < len(rolls) else 0
+                    frames.append([10])
+                    score += 10 + bonus1 + bonus2
+                    i += 1
                 else:
-                    # Normaler Frame
-                    frame_score = frame_total
-                    frames.append([first, second])
-                    i += 2
+                    first = rolls[i]
+                    second = rolls[i+1] if i+1 < len(rolls) else None
 
-                score += frame_score
+                    # only first roll available (incomplete frame)
+                    if second is None:
+                        frames.append([first])
+                        score += first  # include partial frame's pins immediately
+                        i += 1
+                    else:
+                        frames.append([first, second])
+                        frame_sum = first + second
+                        if frame_sum == 10:
+                            # spare: add 10 + next roll as bonus (0 if missing)
+                            bonus = rolls[i+2] if i+2 < len(rolls) else 0
+                            score += 10 + bonus
+                        else:
+                            # open frame
+                            score += frame_sum
+                        i += 2
+            else:
+                # 10th frame: can have 1..3 rolls
+                r1 = rolls[i] if i < len(rolls) else None
+                r2 = rolls[i+1] if i+1 < len(rolls) else None
+                r3 = rolls[i+2] if i+2 < len(rolls) else None
 
+                tenth = []
+                if r1 is not None:
+                    tenth.append(r1)
+                if r2 is not None:
+                    tenth.append(r2)
+                # determine if a third roll is allowed and present
+                if r1 is not None and (r1 == 10 or (r2 is not None and r1 + r2 == 10)):
+                    if r3 is not None:
+                        tenth.append(r3)
+
+                frames.append(tenth)
+
+                # score what is available in 10th (partial allowed)
+                score += sum(tenth)
+                # after 10th frame we're done
+                break
+
+        player.frames = frames
         return score, frames
 
     def get_game_state(self):
