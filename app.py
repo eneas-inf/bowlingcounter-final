@@ -52,71 +52,70 @@ class BowlingGame:
         if len(self.current_player_order) > 0:
             self.current_turn_index = (self.current_turn_index + 1) % len(self.current_player_order)
 
-    def compute_frames_and_score(self, player: Player):
-        rolls = player.rolls[:]
+    def compute_frames_and_score(self, player):
+        rolls = player.rolls
         frames = []
         score = 0
         i = 0
-        # compute frame breakdown for UI and score
+
+        # Iterate frames 1..10
         for frame_index in range(1, 11):
+            # if we've consumed all rolls, append empty frame (for UI) and continue
             if i >= len(rolls):
-                # incomplete frame
-                frames.append([] if frame_index < 10 else [])
+                frames.append([])
                 continue
 
+            # Frames 1..9
             if frame_index < 10:
-                # frames 1-9
+                # Strike
                 if rolls[i] == 10:
-                    # strike
+                    bonus1 = rolls[i+1] if i+1 < len(rolls) else 0
+                    bonus2 = rolls[i+2] if i+2 < len(rolls) else 0
                     frames.append([10])
-                    # add score if bonus rolls exist
-                    bonus1 = rolls[i+1] if i+1 < len(rolls) else None
-                    bonus2 = rolls[i+2] if i+2 < len(rolls) else None
-                    if bonus1 is not None and bonus2 is not None:
-                        score += 10 + bonus1 + bonus2
+                    score += 10 + bonus1 + bonus2
                     i += 1
                 else:
                     first = rolls[i]
                     second = rolls[i+1] if i+1 < len(rolls) else None
+
+                    # only first roll available (incomplete frame)
                     if second is None:
                         frames.append([first])
+                        score += first  # include partial frame's pins immediately
                         i += 1
                     else:
                         frames.append([first, second])
-                        if first + second == 10:
-                            # spare
-                            bonus = rolls[i+2] if i+2 < len(rolls) else None
-                            if bonus is not None:
-                                score += 10 + bonus
+                        frame_sum = first + second
+                        if frame_sum == 10:
+                            # spare: add 10 + next roll as bonus (0 if missing)
+                            bonus = rolls[i+2] if i+2 < len(rolls) else 0
+                            score += 10 + bonus
                         else:
-                            score += first + second
+                            # open frame
+                            score += frame_sum
                         i += 2
             else:
-                # 10th frame: up to three rolls
-                tenth = []
-                tenth.append(rolls[i])
-                if i+1 < len(rolls):
-                    tenth.append(rolls[i+1])
-                if (tenth[0] == 10) or (len(tenth) >=2 and sum(tenth[:2]) == 10):
-                    # eligible for third roll if strike or spare
-                    if i+2 < len(rolls):
-                        tenth.append(rolls[i+2])
-                frames.append(tenth)
-                # Now compute 10th frame's score if complete
-                if len(tenth) == 1:
-                    # not complete
-                    pass
-                else:
-                    # sum available pins but ensure logic of bonuses handled
-                    score_10 = sum(tenth)
-                    # If there are missing extra rolls because earlier strikes need bonuses,
-                    # they were already counted when encountering strikes/spares earlier.
-                    # For safety, if full info available, add to score.
-                    score += score_10
-                break  # 10 frames only
+                # 10th frame: can have 1..3 rolls
+                r1 = rolls[i] if i < len(rolls) else None
+                r2 = rolls[i+1] if i+1 < len(rolls) else None
+                r3 = rolls[i+2] if i+2 < len(rolls) else None
 
-        # Additional pass to ensure strikes/spares in frames 1-9 add base when bonuses missing previously:
-        # (we already tried to add bonuses when present)
+                tenth = []
+                if r1 is not None:
+                    tenth.append(r1)
+                if r2 is not None:
+                    tenth.append(r2)
+                # determine if a third roll is allowed and present
+                if r1 is not None and (r1 == 10 or (r2 is not None and r1 + r2 == 10)):
+                    if r3 is not None:
+                        tenth.append(r3)
+
+                frames.append(tenth)
+
+                # score what is available in 10th (partial allowed)
+                score += sum(tenth)
+                # after 10th frame we're done
+                break
 
         player.frames = frames
         return score, frames
