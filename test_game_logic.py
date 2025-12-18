@@ -47,9 +47,10 @@ def test_T08_winner_single_highest():
     p1 = game.add_player("A")
     p2 = game.add_player("B")
 
-    # Spieler A besser
-    p1.rolls = [10, 10, 10]
-    p2.rolls = [0, 0, 0]
+    # Spieler A besser - perfect game (all strikes)
+    p1.rolls = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+    # Spieler B - all misses (gutter balls)
+    p2.rolls = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     state = game.get_game_state()
     assert state["winners"] == [p1.id]
@@ -62,8 +63,8 @@ def test_T09_winner_tie():
     p2 = game.add_player("B")
 
     # spare + bonus 5 = 15
-    p1.rolls = [5, 5, 5]
-    p2.rolls = [5, 5, 5]
+    p1.rolls = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+    p2.rolls = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
 
     state = game.get_game_state()
     assert set(state["winners"]) == {p1.id, p2.id}
